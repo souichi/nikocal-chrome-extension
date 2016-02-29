@@ -15,6 +15,9 @@
   "dependencies": {
     "chrome/chrome.d.ts": {
       "ref": "dade4414712ce84e3c63393f1aae407e9e7e6af7"
+    },
+    "node/node.d.ts": {
+      "ref": "b10e5ade29708bb0a7d21916a9fe289973520e89"
     }
   }
 }

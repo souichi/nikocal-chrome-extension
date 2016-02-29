@@ -1,5 +1,8 @@
 (() => {
+  const NIKOCAL_URL = 'http://172.24.212.83:3001/';
+  
   const CHECK_INTERVAL = 5;
+  
   const KEY_NIKOCAL_DATE = 'nikocal_date'
   const NOTIFY_NIKOCAL_HOUR = 18;
   const NOTIFY_NIKOCAL_MINUTE = 50;
@@ -24,6 +27,7 @@
   function hide() {
     chrome.browserAction.setIcon({ path: 'icon2.png' });
     chrome.browserAction.setBadgeText({ text: '' });
+    clearNotification();
   }
   
   /**
@@ -58,7 +62,25 @@
       'nikocal_date': nikocalData
     });
   }
-
+  
+  function onOpenNikoCal(): void { 
+    getNikoCalDataAsyc().
+      then((nikocalData: INikonikoData) => {
+        if (nikocalData.notifyDate < Date.now()) {
+          nikocalData.isNotify = true;
+          setNikoCalDataAsyc(nikocalData);
+        }
+      });
+  }
+  
+  function clearNotification(): void { 
+    chrome.notifications.getAll((notifications: {[index: string]: boolean}) => {
+      for (var notificationId in notifications) { 
+        chrome.notifications.clear(notificationId);
+      }
+    });
+  }
+  
   function showNikocalNotification() {
     chrome.notifications.create({
       type: 'basic',
@@ -68,14 +90,10 @@
     });
     chrome.notifications.onClicked.addListener((notificationId: string) => {
       chrome.tabs.create({
-        url: 'http://172.24.212.83:3001/'
+        url: NIKOCAL_URL
       });
-      chrome.notifications.clear(notificationId);
-      getNikoCalDataAsyc().
-        then((nikocalData: INikonikoData) => {
-          nikocalData.isNotify = true;
-          setNikoCalDataAsyc(nikocalData);
-        });
+      clearNotification();
+      onOpenNikoCal();
     });
   }
 
@@ -93,8 +111,8 @@
       chrome.notifications.clear(notificationId);
     });
   }
-
-  function check() {
+  
+  function checkOpenNikoCal() {
     getNikoCalDataAsyc().
       then((nikocalData: INikonikoData) => {
         var notifyDate = new Date(nikocalData.notifyDate);
@@ -117,12 +135,19 @@
         }
       });
   }
+
+  chrome.browserAction.onClicked.addListener(() => {
+      onOpenNikoCal();
+      chrome.tabs.create({
+        url: NIKOCAL_URL
+      });
+  });
   chrome.alarms.create('nikocal', { periodInMinutes: CHECK_INTERVAL });
   chrome.alarms.onAlarm.addListener(function(alarm: chrome.alarms.Alarm) {
     if (alarm.name === 'nikocal') {
-      check();
+      checkOpenNikoCal();
     }
   });
-  check();
+  checkOpenNikoCal();
 })();
 
