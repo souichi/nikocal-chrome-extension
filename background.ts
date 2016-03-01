@@ -1,17 +1,19 @@
 (() => {
-  const NIKOCAL_URL = 'http://172.24.212.83:3001/';
-  
   const CHECK_INTERVAL = 5;
   
+  const NIKOCAL_ALARM = 'nikocal_alarm';
+  
+  const NIKOCAL_NOTIFICATION = 'nikocal_nitification';
+  const NIKOCAL_URL = 'http://172.24.212.83:3001/';
   const KEY_NIKOCAL_DATE = 'nikocal_date'
   const NOTIFY_NIKOCAL_HOUR = 18;
   const NOTIFY_NIKOCAL_MINUTE = 50;
   const NOTIFY_NIKOCAL_SECOND = 0;
 
-  const NOTIFY_TIMEPRO_WEEK = 1;
-  const NOTIFY_TIMEPRO_HOUR = 10;
-  const NOTIFY_TIMEPRO_MINUTE = 0;
-  const NOTIFY_TIMEPRO_SECOND = 0;
+  // const NOTIFY_TIMEPRO_WEEK = 1;
+  // const NOTIFY_TIMEPRO_HOUR = 10;
+  // const NOTIFY_TIMEPRO_MINUTE = 0;
+  // const NOTIFY_TIMEPRO_SECOND = 0;
   
   interface INikonikoData {
     notifyDate: number;
@@ -27,7 +29,6 @@
   function hide() {
     chrome.browserAction.setIcon({ path: 'icon2.png' });
     chrome.browserAction.setBadgeText({ text: '' });
-    clearNotification();
   }
   
   /**
@@ -73,44 +74,32 @@
       });
   }
   
-  function clearNotification(): void { 
-    chrome.notifications.getAll((notifications: {[index: string]: boolean}) => {
-      for (var notificationId in notifications) { 
-        chrome.notifications.clear(notificationId);
-      }
-    });
-  }
-  
   function showNikocalNotification() {
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icon2.png',
-      title: 'ニコニコカレンダーよりお知らせ',
-      message: 'そろそろ入力したら？'
-    });
-    chrome.notifications.onClicked.addListener((notificationId: string) => {
-      chrome.tabs.create({
-        url: NIKOCAL_URL
-      });
-      clearNotification();
-      onOpenNikoCal();
-    });
+    chrome.notifications.create(
+      NIKOCAL_NOTIFICATION,
+      {
+        type: 'basic',
+        iconUrl: 'icon2.png',
+        title: 'ニコニコカレンダーよりお知らせ',
+        message: 'ニコニコカレンダーの入力お願いします:)'
+      }
+    );
   }
 
-  function showWBSNotification() {
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icon2.png',
-      title: 'ニコニコカレンダーよりお知らせ',
-      message: 'TimeProとWBSの入力はした？'
-    });
-    chrome.notifications.onClicked.addListener((notificationId: string) => {
-      chrome.tabs.create({
-        url: 'http://timepro/xgweb/login.asp/'
-      });
-      chrome.notifications.clear(notificationId);
-    });
-  }
+  // function showWBSNotification() {
+  //   chrome.notifications.create({
+  //     type: 'basic',
+  //     iconUrl: 'icon2.png',
+  //     title: 'ニコニコカレンダーよりお知らせ',
+  //     message: 'TimeProとWBSの入力はした？'
+  //   });
+  //   chrome.notifications.onClicked.addListener((notificationId: string) => {
+  //     chrome.tabs.create({
+  //       url: 'http://timepro/xgweb/login.asp/'
+  //     });
+  //     chrome.notifications.clear(notificationId);
+  //   });
+  // }
   
   function checkOpenNikoCal() {
     getNikoCalDataAsyc().
@@ -136,15 +125,36 @@
       });
   }
 
+  /**
+   * メニューのアイコンクリックイベント付与
+   */  
   chrome.browserAction.onClicked.addListener(() => {
       onOpenNikoCal();
       chrome.tabs.create({
         url: NIKOCAL_URL
       });
   });
-  chrome.alarms.create('nikocal', { periodInMinutes: CHECK_INTERVAL });
+  
+  /**
+   * Notificationにイベント付与
+   */
+  chrome.notifications.onClicked.addListener((notificationId: string) => {
+    switch (notificationId) { 
+      case NIKOCAL_NOTIFICATION:
+        chrome.tabs.create({
+          url: NIKOCAL_URL
+        });
+        onOpenNikoCal();
+        break;
+      default:
+        break;
+    }
+  });
+
+  chrome.alarms.clear(NIKOCAL_ALARM);  
+  chrome.alarms.create(NIKOCAL_ALARM, { periodInMinutes: CHECK_INTERVAL });
   chrome.alarms.onAlarm.addListener(function(alarm: chrome.alarms.Alarm) {
-    if (alarm.name === 'nikocal') {
+    if (alarm.name === NIKOCAL_ALARM) {
       checkOpenNikoCal();
     }
   });
